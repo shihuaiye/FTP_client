@@ -77,7 +77,7 @@ ftp_client/
 ``` 
 服务器地址	ftp.dlptest.com 
 端口	21 (FTP默认端口) 
-用户名	dlpuser@dlptest.com 
+用户名	dlpuser 
 密码	rNrKYTX9g7z3RgJRmxWuGHbeu
 ```
 重要提醒：这个服务器的密码会定期更改。上面提供的密码是搜索资料中的最新版本，如果连接失败，建议直接访问它的官网 https://dlptest.com/ftp-test/ 获取最新密码，另外如果连接不上可以多试几次，退出重新启动程序之类的，这个问题貌似是因为公共平台的问题，对流量有限制，或者尝试不使用校园网
