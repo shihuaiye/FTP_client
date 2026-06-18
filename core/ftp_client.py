@@ -231,6 +231,10 @@ class FTPClient:
         """读取传输结束后控制通道上残留的响应"""
         if not self.cmd_socket:
             return
+        
+        # 清空响应缓冲区
+        self._response_buffer = b""
+        
         old_timeout = self.cmd_socket.gettimeout()
         self.cmd_socket.settimeout(timeout)
         try:
@@ -244,18 +248,58 @@ class FTPClient:
             pass
         finally:
             self.cmd_socket.settimeout(old_timeout)
+            # 再次清空缓冲区，确保干净
+            self._response_buffer = b""
     
     def _transfer_cleanup(self, data_socket: Optional[socket.socket] = None):
         """中止传输并同步控制通道状态"""
+        print("_transfer_cleanup: 开始清理")  # 调试
+        
+        # 先关闭数据连接
         if data_socket:
             self._close_data_connection(data_socket)
+        
         if not self.cmd_socket:
             return
-        try:
-            self.cmd_socket.sendall(b'ABOR\r\n')
-        except OSError:
-            pass
-        self._drain_pending_responses()
+        
+        # 使用锁发送ABOR并清理响应
+        with self._lock:
+            # 清空响应缓冲区
+            self._response_buffer = b""
+            
+            try:
+                print("_transfer_cleanup: 发送ABOR")  # 调试
+                self.cmd_socket.sendall(b'ABOR\r\n')
+            except OSError as e:
+                print(f"_transfer_cleanup: ABOR发送失败: {e}")  # 调试
+            
+            # 等待并读取ABOR响应
+            try:
+                self.cmd_socket.settimeout(5)
+                response = self._recv_response()
+                print(f"_transfer_cleanup: ABOR响应: {response}")  # 调试
+                
+                # 可能还有传输结束响应，继续读取
+                try:
+                    response2 = self._recv_response()
+                    print(f"_transfer_cleanup: 第二响应: {response2}")  # 调试
+                except:
+                    pass
+            except socket.timeout:
+                print("_transfer_cleanup: ABOR响应超时")  # 调试
+            except Exception as e:
+                print(f"_transfer_cleanup: 响应读取失败: {e}")  # 调试
+            
+            # 最后清空缓冲区
+            self._response_buffer = b""
+            
+            # 恢复超时设置
+            try:
+                self.cmd_socket.settimeout(self.timeout)
+            except:
+                pass
+        
+        print("_transfer_cleanup: 清理完成")  # 调试
     
     def _close_data_on_error(self, data_socket: Optional[socket.socket]):
         """传输出错时仅关闭数据连接，不发送 ABOR"""
@@ -457,6 +501,9 @@ class FTPClient:
         """列出目录内容"""
         print("list: 开始...")  # 调试
         
+        # 清空响应缓冲区，避免残留响应干扰
+        self._response_buffer = b""
+        
         with self._transfer_lock:
             print("list: 获取传输锁成功")  # 调试
             data_socket = None
@@ -611,6 +658,9 @@ class FTPClient:
         """下载文件，支持断点续传"""
         print(f"download: 开始 {remote_file} -> {local_file}")  # 调试
         
+        # 清空响应缓冲区，避免残留响应干扰
+        self._response_buffer = b""
+        
         if not self.binary_mode:
             self.set_binary_mode()
         
@@ -733,6 +783,9 @@ class FTPClient:
                offset: int = 0, callback: Callable = None) -> bool:
         """上传文件，支持断点续传"""
         print(f"upload: 开始 {local_file} -> {remote_file}")  # 调试
+        
+        # 清空响应缓冲区，避免残留响应干扰
+        self._response_buffer = b""
         
         if not self.binary_mode:
             self.set_binary_mode()

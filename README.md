@@ -19,21 +19,98 @@
 ## 安装依赖
 
 ```bash
-pip install -r requirements.txt
+pip install PyQt5 PyMySQL pyftpdlib
 ```
 
 ## 数据库配置
 
 1. 确保MySQL服务已启动
-2. 修改 `ftp_client/config.py` 中的数据库配置
+2. 修改 `config.py` 中的数据库配置：
+
+```python
+DB_CONFIG = {
+    'host': 'localhost',
+    'port': 3306,
+    'user': 'root',
+    'password': '你的MySQL密码',  # 改这里
+    'database': 'ftp_client',
+    'charset': 'utf8mb4'
+}
+```
+
 3. 首次运行会自动创建数据库和表
 
-## 运行程序
+## 使用本地FTP服务器测试
 
-```bash
-cd ftp_client
+### 1. 安装 pyftpdlib
+
+```powershell
+pip install pyftpdlib
+```
+
+### 2. 创建测试目录
+
+测试目录 `ftp_test` 会在首次启动服务器时自动创建。
+
+### 3. 启动FTP服务器
+
+打开一个**新的PowerShell窗口**，运行：
+
+```powershell
+cd E:\network\ftp_client
+python ftp_server.py
+```
+
+服务器会显示：
+```
+==================================================
+本地FTP测试服务器
+==================================================
+
+FTP根目录: E:\network\ftp_client\ftp_test
+
+服务器配置:
+  地址: 127.0.0.1:21
+  用户名: test
+  密码: 123456
+  匿名用户: anonymous (只读)
+
+按 Ctrl+C 停止服务器
+==================================================
+```
+
+### 4. 运行FTP客户端
+
+在**另一个PowerShell窗口**运行：
+
+```powershell
+cd E:\network\ftp_client
 python main.py
 ```
+
+### 5. 连接本地服务器
+
+在连接对话框中输入：
+
+- **主机**：`localhost` 或 `127.0.0.1`
+- **端口**：`21`
+- **用户名**：`test`
+- **密码**：`123456`
+
+匿名用户（只读）：
+- **用户名**：`anonymous`
+- **密码**：空（不填）
+
+### 6. 测试功能
+
+- **下载**：右键远程文件，选择下载
+- **上传**：选择本地文件，右键上传
+- **断点续传**：暂停后恢复
+
+### 注意事项
+
+- pyftpdlib 默认匿名用户只允许下载
+- 使用 `test` 用户（密码 `123456`）可完整测试上传、下载、删除功能
 
 ## 项目结构
 
@@ -41,6 +118,7 @@ python main.py
 ftp_client/
 ├── config.py           # 配置文件
 ├── main.py            # 主程序入口
+├── ftp_server.py      # 本地FTP测试服务器
 ├── __init__.py        # 包初始化
 ├── core/              # 核心模块
 │   ├── ftp_client.py  # FTP协议实现
@@ -63,3 +141,15 @@ ftp_client/
 4. 双击目录可进入，双击".."可返回上级
 5. 右键文件可选择上传/下载/删除/重命名
 6. 传输过程中可暂停，支持断点续传
+
+## 公共FTP测试服务器
+
+如需测试公共FTP服务器，可使用：
+
+| 服务器 | 地址 | 用户名 | 密码 | 说明 |
+|--------|------|--------|------|------|
+| DLPTest | ftp.dlptest.com | dlptest | dlptest | 支持上传下载 |
+| Rebex | test.rebex.net | demo | password | 只读 |
+| GNU | ftp.gnu.org | anonymous | 空 | 只读 |
+
+注意：公共服务器可能有连接频率限制，建议使用本地服务器测试。
